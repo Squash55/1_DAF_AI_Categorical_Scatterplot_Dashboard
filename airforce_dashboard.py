@@ -12,8 +12,14 @@ from dotenv import load_dotenv
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-st.set_page_config(page_title="Categorical Heatmap with Proportions", layout="wide")
-st.title("🛡️ Air Force Breach Proportion Dashboard")
+uploaded_file = st.file_uploader("Upload a new dataset (CSV)", type=["csv"])
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+    file_title = uploaded_file.name.replace("_", " ").replace(".csv", "").title()
+    st.title(f"📊 {file_title} Dashboard")
+else:
+    df = pd.read_csv("airforce_data.csv")
+    st.title("🛡️ Air Force Breach Proportion Dashboard")
 
 st.markdown("""
 ### 📘 Methods & Limitations
@@ -28,12 +34,6 @@ This dashboard uses a combination of **data-driven calculations**, **rule-based 
 
 **Missing variable advisory**: This analysis is based on limited fields. Important contextual variables (e.g., mission criticality, time in service, threat posture) are not included and may affect interpretation.
 """)
-
-uploaded_file = st.file_uploader("Upload a new dataset (CSV)", type=["csv"])
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-else:
-    df = pd.read_csv("airforce_data.csv")
 
 col1, col2 = st.columns(2)
 x_jitter = col1.slider("Horizontal Jitter", 0, 30, 10, 1)
@@ -88,28 +88,22 @@ ax.set_title('Categorical Heatmap with Red/Blue Proportions per Cell')
 ax.legend(title='Breach History')
 st.pyplot(fig)
 
-st.subheader("📊 Rule-Based Insights")
-grouped = df.groupby('Mission Type')
-for name, group in grouped:
-    rate = group['Breach History'].mean()
-    high_risk = group[group['Cyber Risk Level'] >= 2]
-    high_rate = high_risk['Breach History'].mean() if not high_risk.empty else 0
-    st.markdown(f"🧠 **{name}** missions have a breach rate of **{rate:.0%}**, "
-                f"and **{high_rate:.0%}** at higher risk levels.")
+# 📊 Pareto Chart Section
+st.subheader("📊 Breach Rate Pareto Chart by Mission × Risk Level")
+grouped = df.groupby(['Mission Type', 'Cyber Risk Level'])
+summary = grouped['Breach History'].agg(['mean', 'count']).reset_index()
+summary['Label'] = summary['Mission Type'] + ' @ ' + summary['Cyber Risk Level'].astype(str)
+summary['Breach %'] = (summary['mean'] * 100).round(1)
+summary = summary.sort_values(by='mean', ascending=False)
 
-if openai.api_key:
-    st.subheader("🤖 GPT-Based Insights")
-    prompt = f"Generate executive insights about breach rates and mission types using this data schema: {list(df.columns)}"
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.5
-        )
-        for line in response['choices'][0]['message']['content'].split("\n"):
-            if line.strip():
-                st.markdown("🤖 " + line.strip())
-    except Exception as e:
-        st.error(f"GPT Error: {e}")
-else:
-    st.info("OpenAI key not detected. Add it in .env as OPENAI_API_KEY=sk-... to enable GPT insights.")
+fig2, ax2 = plt.subplots(figsize=(10, 6))
+bars = ax2.barh(summary['Label'], summary['Breach %'], color='tomato', edgecolor='black')
+ax2.set_xlabel('Breach Percentage (%)')
+ax2.set_title('Pareto Chart: Breach Rate by Mission × Risk Level')
+
+for bar, count in zip(bars, summary['count']):
+    width = bar.get_width()
+    ax2.text(width + 1, bar.get_y() + bar.get_height()/2, f"{count} pts", va='center', fontsize=8)
+
+plt.gca().invert_yaxis()
+st.pyplot(fig2)
