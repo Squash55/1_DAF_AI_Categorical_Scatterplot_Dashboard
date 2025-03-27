@@ -48,8 +48,16 @@ fig, ax = plt.subplots(figsize=(10, 6))
 x = np.linspace(-0.5, 3.5, 500)
 y = np.linspace(-1, 4.5, 500)
 X, Y = np.meshgrid(x, y)
-Z = 1 / (1 + np.exp(-(X - 1.5) * 5))
-ax.imshow(Z, extent=[-0.5, 3.5, -1, 4.5], origin='lower', cmap='bwr', alpha=0.2, aspect='auto')
+
+# Simulated 2D risk surface: high risk = top-right, low = bottom-left
+Z = np.exp(-((X - 2.2)**2 / 1.2 + (Y - 3)**2 / 2))
+
+# Normalize to 0–1 range for color scaling
+Z = (Z - Z.min()) / (Z.max() - Z.min())
+
+# Apply color gradient
+ax.imshow(Z, extent=[-0.5, 3.5, -1, 4.5], origin='lower', cmap='bwr', alpha=0.25, aspect='auto')
+
 
 # Scatter points with both x and y jitter
 for label, color in zip([0, 1], ['blue', 'red']):
