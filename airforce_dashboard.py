@@ -1,4 +1,6 @@
 
+import matplotlib
+matplotlib.use("TkAgg")  # or "Qt5Agg", depending on what your system supports
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 import pandas as pd
