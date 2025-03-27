@@ -72,4 +72,5 @@ ax.set_ylabel('Cyber Risk Level')
 ax.set_title('✅ Final Heatmap: Accurate Coloring + Label Placement + High-Contrast Dots')
 ax.legend(title='Breach History')
 plt.tight_layout()
-plt.show()
+plt.savefig("final_heatmap_output.png", dpi=300)
+
