@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -10,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-st.set_page_config(page_title="Air Force AI Dashboard", layout="wide")
+st.set_page_config(page_title="Air Force Categorical Scatterplot Dashboard", layout="wide")
 
 # Load data
 uploaded_file = st.file_uploader("Upload a new Air Force dataset (CSV)", type=["csv"])
@@ -21,9 +20,7 @@ else:
     df = pd.read_csv("airforce_data.csv")
     data_source = "Default artificial dataset"
 
-# -------------------------------
-# 📘 Dashboard Header
-# -------------------------------
+# Dashboard header
 st.markdown("""
 ## 📘 Analysis Methods & Auto-Update Capabilities
 
@@ -37,9 +34,39 @@ This ensures your results are always **current, explainable, and aligned with th
 All insights are clearly tagged with their method of origin for full transparency.
 """, unsafe_allow_html=True)
 
-# -------------------------------
-# Generate interpretations
-# -------------------------------
+# Jitter sliders
+col1, col2 = st.columns(2)
+x_jitter = col1.slider("Horizontal Jitter", 0, 30, 10, 1)
+y_jitter = col2.slider("Vertical Jitter", 0, 30, 10, 1)
+
+# Convert categorical x-axis to numeric positions with jitter
+mission_map = {'Surveillance': 0, 'Training': 1, 'Combat': 2, 'Logistics': 3}
+df['x'] = df['Mission Type'].map(mission_map) + np.random.normal(0, x_jitter / 100, size=len(df))
+
+# Plotting
+fig, ax = plt.subplots(figsize=(10, 6))
+x = np.linspace(-0.5, 3.5, 500)
+y = np.linspace(-1, 4.5, 500)
+X, Y = np.meshgrid(x, y)
+Z = 1 / (1 + np.exp(-(X - 1.5) * 5))
+ax.imshow(Z, extent=[-0.5, 3.5, -1, 4.5], origin='lower', cmap='bwr', alpha=0.2, aspect='auto')
+
+# Scatter points with both x and y jitter
+for label, color in zip([0, 1], ['blue', 'red']):
+    subset = df[df['Breach History'] == label]
+    subset_y = subset['Cyber Risk Level'] + np.random.normal(0, y_jitter / 100, size=len(subset))
+    ax.scatter(subset['x'], subset_y, color=color,
+               label='No Breach' if label == 0 else 'Breach', edgecolor='k', alpha=0.8)
+
+ax.set_xticks(range(4))
+ax.set_xticklabels(['Surveillance', 'Training', 'Combat', 'Logistics'], rotation=15)
+ax.set_yticks(range(-1, 5))
+ax.set_ylabel('Cyber Risk Level')
+ax.set_xlabel('Mission Type')
+ax.legend(title='Breach History')
+st.pyplot(fig)
+
+# Rule-based insights
 def generate_rule_based_insights(df):
     insights = []
     grouped = df.groupby('Mission Type')
@@ -53,11 +80,12 @@ def generate_rule_based_insights(df):
         )
     return insights
 
+# GPT-based insights
 def generate_gpt_insights(df):
     if openai.api_key is None:
         return ["⚠️ [GPT-Based] OpenAI API key not found. GPT insights are disabled."]
-    prompt = f"""You are an AI data analyst. The dataset includes these columns: {list(df.columns)}. 
-Generate executive-level insights about breach patterns across mission types using clear, bullet-style summaries."""
+    prompt = f"You are an AI analyst reviewing a dataset with columns: {list(df.columns)}. " \
+             f"Generate clear, executive-style insights about breach risk by mission type."
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4",
@@ -68,37 +96,7 @@ Generate executive-level insights about breach patterns across mission types usi
     except Exception as e:
         return [f"⚠️ GPT error: {e}"]
 
-# -------------------------------
-# Visualization
-# -------------------------------
-jitter_strength = st.slider("Jitter Strength", 0, 30, 10, 1)
-
-fig, ax = plt.subplots(figsize=(10, 6))
-x = np.linspace(-0.5, 3.5, 500)
-y = np.linspace(-1, 4.5, 500)
-X, Y = np.meshgrid(x, y)
-Z = 1 / (1 + np.exp(-(X - 1.5) * 5))
-ax.imshow(Z, extent=[-0.5, 3.5, -1, 4.5], origin='lower', cmap='bwr', alpha=0.2, aspect='auto')
-
-df['x'] = df['Mission Type'].map({'Surveillance': 0, 'Training': 1, 'Combat': 2, 'Logistics': 3}) +           np.random.normal(0, jitter_strength / 100, size=len(df))
-
-for label, color in zip([0, 1], ['blue', 'red']):
-    subset = df[df['Breach History'] == label]
-    subset_y = subset['Cyber Risk Level'] + np.random.normal(0, jitter_strength / 100, size=len(subset))
-ax.scatter(subset['x'], color=color,
-               label='No Breach' if label == 0 else 'Breach', edgecolor='k', alpha=0.8)
-
-ax.set_xticks(range(4))
-ax.set_xticklabels(['Surveillance', 'Training', 'Combat', 'Logistics'], rotation=15)
-ax.set_yticks(range(-1, 5))
-ax.set_ylabel('Cyber Risk Level')
-ax.set_xlabel('Mission Type')
-ax.legend(title='Breach History')
-st.pyplot(fig)
-
-# -------------------------------
-# Display interpretations
-# -------------------------------
+# Display insights side by side
 st.subheader("📊 Auto-Generated Interpretations")
 col1, col2 = st.columns(2)
 with col1:
@@ -110,13 +108,11 @@ with col2:
     for i in generate_gpt_insights(df):
         st.markdown(i)
 
-# -------------------------------
-# Missing Data Advisory (GPT)
-# -------------------------------
+# Missing data disclaimer
 if openai.api_key:
-    disclaimer_prompt = f"""You are reviewing an Air Force dataset with columns: {list(df.columns)}.
-List 3–5 relevant fields that are missing and should be included in future analyses. 
-Add a short one-sentence rationale and tag each with High, Medium, or Optional priority."""
+    disclaimer_prompt = f"You are reviewing an Air Force dataset with columns: {list(df.columns)}. " \
+                        "List 3–5 important but missing fields that should be added for better analysis. " \
+                        "Include rationale and tag each as High, Medium, or Optional priority."
     try:
         resp = openai.ChatCompletion.create(
             model="gpt-4",
