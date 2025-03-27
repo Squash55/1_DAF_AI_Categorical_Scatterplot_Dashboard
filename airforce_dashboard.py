@@ -78,25 +78,6 @@ summary = grouped['Breach History'].agg(['mean', 'count']).reset_index()
 summary['Label'] = summary['Mission Type'] + ' @ ' + summary['Cyber Risk Level'].astype(str)
 summary['Breach %'] = (summary['mean'] * 100).round(1)
 
-# 📊 Pareto Chart Section
-st.subheader("📊 Breach Rate Pareto Chart by Mission × Risk Level")
-grouped = df.groupby(['Mission Type', 'Cyber Risk Level'])
-summary = grouped['Breach History'].agg(['mean', 'count']).reset_index()
-summary['Label'] = summary['Mission Type'] + ' @ ' + summary['Cyber Risk Level'].astype(str)
-summary['Breach %'] = (summary['mean'] * 100).round(1)
-summary = summary.sort_values(by='Breach %', ascending=False)
-
-fig2, ax2 = plt.subplots(figsize=(10, 6))
-bars = ax2.barh(summary['Label'], summary['Breach %'], color='tomato', edgecolor='black')
-ax2.set_xlabel('Breach Percentage (%)')
-ax2.set_title('Pareto Chart: Breach Rate by Mission × Risk Level')
-
-for bar, count in zip(bars, summary['count']):
-    width = bar.get_width()
-    ax2.text(width + 1, bar.get_y() + bar.get_height()/2, f"{count} pts", va='center', fontsize=8)
-
-ax2.invert_yaxis()
-st.pyplot(fig2)
 # 🔍 Rule-Based Insight Summary
 st.markdown("### 🧠 Rule-Based Insights")
 high_risk = summary.loc[summary['mean'] > 0.5]
@@ -112,3 +93,22 @@ if not low_risk.empty:
     for _, row in low_risk.iterrows():
         st.write(f"• `{row['Label']}` has a relatively low breach rate of **{row['Breach %']}%**.")
 
+# 📊 Pareto Chart Section
+st.subheader("📊 Breach Rate Pareto Chart by Mission × Risk Level")
+grouped = df.groupby(['Mission Type', 'Cyber Risk Level'])
+summary = grouped['Breach History'].agg(['mean', 'count']).reset_index()
+summary['Label'] = summary['Mission Type'] + ' @ ' + summary['Cyber Risk Level'].astype(str)
+summary['Breach %'] = (summary['mean'] * 100).round(1)
+summary = summary.sort_values(by='mean', ascending=False)
+
+fig2, ax2 = plt.subplots(figsize=(10, 6))
+bars = ax2.barh(summary['Label'], summary['Breach %'], color='tomato', edgecolor='black')
+ax2.set_xlabel('Breach Percentage (%)')
+ax2.set_title('Pareto Chart: Breach Rate by Mission × Risk Level')
+
+for bar, count in zip(bars, summary['count']):
+    width = bar.get_width()
+    ax2.text(width + 1, bar.get_y() + bar.get_height()/2, f"{count} pts", va='center', fontsize=8)
+
+ax2.invert_yaxis()
+st.pyplot(fig2)
