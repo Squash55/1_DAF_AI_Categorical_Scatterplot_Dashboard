@@ -70,7 +70,10 @@ ax.legend(title='Breach History')
 plt.tight_layout()
 st.pyplot(fig)
 
-
+grouped = df.groupby(['Mission Type', 'Cyber Risk Level'])
+summary = grouped['Breach History'].agg(['mean', 'count']).reset_index()
+summary['Label'] = summary['Mission Type'] + ' @ ' + summary['Cyber Risk Level'].astype(str)
+summary['Breach %'] = (summary['mean'] * 100).round(1)
 # 🔍 Rule-Based Insight Summary
 st.markdown("### 🧠 Rule-Based Insights")
 high_risk = summary.loc[summary['mean'] > 0.5]
@@ -88,10 +91,6 @@ if not low_risk.empty:
 
 # 📊 Pareto Chart Section
 st.subheader("📊 Breach Rate Pareto Chart by Mission × Risk Level")
-grouped = df.groupby(['Mission Type', 'Cyber Risk Level'])
-summary = grouped['Breach History'].agg(['mean', 'count']).reset_index()
-summary['Label'] = summary['Mission Type'] + ' @ ' + summary['Cyber Risk Level'].astype(str)
-summary['Breach %'] = (summary['mean'] * 100).round(1)
 summary = summary.sort_values(by='mean', ascending=False)
 
 fig2, ax2 = plt.subplots(figsize=(10, 6))
