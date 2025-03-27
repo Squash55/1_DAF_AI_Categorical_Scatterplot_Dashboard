@@ -15,6 +15,20 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 st.set_page_config(page_title="Categorical Heatmap with Proportions", layout="wide")
 st.title("🛡️ Air Force Breach Proportion Dashboard")
 
+st.markdown("""
+### 📘 Methods & Limitations
+
+This dashboard uses a combination of **data-driven calculations**, **rule-based logic**, and optional **GPT-based insights** to interpret breach risks across mission types and cyber risk levels.
+
+- Grid cells are color-coded **only when data is available**, and colored based on the **proportion of red (breach) vs blue (no breach)**.
+- Cells with **50/50 proportions or low data density** appear white to avoid over-interpretation.
+- **Empty cells** (no observations) are also white by design, but may visually resemble 50/50 cells.
+- Rule-based insights are derived from live data aggregations.
+- GPT-based summaries are tagged and generated using OpenAI, with optional refresh.
+
+**Missing variable advisory**: This analysis is based on limited fields. Important contextual variables (e.g., mission criticality, time in service, threat posture) are not included and may affect interpretation.
+""")
+
 uploaded_file = st.file_uploader("Upload a new dataset (CSV)", type=["csv"])
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
