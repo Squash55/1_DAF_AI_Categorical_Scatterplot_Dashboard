@@ -58,7 +58,7 @@ for i, x in enumerate(x_centers):
         r = int(heat_red[i, j])
         b = int(heat_blue[i, j])
         if r + b > 0:
-            ax.text(x, y, f"{b}/{r}", ha='center', va='center', fontsize=8, color='black', alpha=0.9)
+            ax.text(x - 0.3, y + 0.3, f"{b}/{r}", ha='left', va='top', fontsize=8, color='black', alpha=0.9)
 
 for label, color in zip([0, 1], ['blue', 'red']):
     subset = df[df['Breach History'] == label]
