@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+
 uploaded_file = st.file_uploader("Upload a new dataset (CSV)", type=["csv"])
 
 if uploaded_file is not None:
@@ -23,6 +24,14 @@ else:
     title_text = "🛡️ Air Force Breach Proportion Dashboard"
 
 st.title(title_text)
+
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+    file_title = uploaded_file.name.replace("_", " ").replace(".csv", "").title()
+    st.title(f"📊 {file_title} Dashboard")
+else:
+    df = pd.read_csv("airforce_data.csv")
+    st.title("🛡️ Air Force Breach Proportion Dashboard")
 
 st.markdown("""
 ### 📘 Methods & Limitations
