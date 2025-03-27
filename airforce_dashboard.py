@@ -58,5 +58,5 @@ ax.set_title('Categorical Proportion Heatmap (Red = 100% Breach)')
 ax.legend(title='Breach History')
 
 # Show plot
-plt.tight_layout()
-plt.show()
+import streamlit as st
+st.pyplot(fig)
