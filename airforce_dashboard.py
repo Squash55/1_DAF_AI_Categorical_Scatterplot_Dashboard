@@ -84,7 +84,8 @@ df['x'] = df['Mission Type'].map({'Surveillance': 0, 'Training': 1, 'Combat': 2,
 
 for label, color in zip([0, 1], ['blue', 'red']):
     subset = df[df['Breach History'] == label]
-    ax.scatter(subset['x'], subset['Cyber Risk Level'], color=color,
+    subset_y = subset['Cyber Risk Level'] + np.random.normal(0, jitter_strength / 100, size=len(subset))
+ax.scatter(subset['x'], color=color,
                label='No Breach' if label == 0 else 'Breach', edgecolor='k', alpha=0.8)
 
 ax.set_xticks(range(4))
