@@ -11,7 +11,7 @@ import os
 
 st.title("Air Force Cyber Breach Analysis Dashboard")
 
-st.markdown("### 📘 Methods & Limitations
+st.markdown("### 📘 Methods & Limitations)
 
 This dashboard visualizes breach proportions across mission types and cyber risk levels using:
 - A categorical heatmap with color-coded red/blue breach proportions
