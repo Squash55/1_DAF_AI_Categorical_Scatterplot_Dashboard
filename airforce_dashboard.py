@@ -119,3 +119,7 @@ for bar, count in zip(bars, summary['count']):
 
 plt.gca().invert_yaxis()
 st.pyplot(fig2)
+
+
+from pareto_module import show_pareto_chart
+show_pareto_chart(df)
