@@ -5,44 +5,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 import numpy.ma as ma
+import scipy.stats as stats
 import os
 
-# 📘 Intro Section — Methods & Limitations
-
+# 📘 Dashboard Title
 st.title("Air Force Cyber Breach Analysis Dashboard")
 
-
+# 📘 Methods & Limitations
 st.markdown("""### 📘 Methods & Limitations
 
 This dashboard visualizes breach proportions across mission types and cyber risk levels using:
-- A categorical heatmap with color-coded red/blue breach proportions
-- Jittered scatter points with high-contrast outlines
-- Cell-level red/blue ratio counts
-- A Pareto chart sorted by breach percentage
-- Rule-based insight summaries derived from grouped data
-- 🔬 **Fisher’s Exact Test** is used to identify statistically significant breach rate differences (p < 0.05)
-
-Missing contextual variables may limit interpretation. Future versions may include GPT-enhanced diagnostics.
+- A categorical heatmap with red/blue proportions
+- Cell-level ratio labels and jittered scatter points
+- A Pareto chart and rule-based insights
+- 🔬 Fisher’s Exact Test for statistical significance (p < 0.05)
 """)
 
-
-st.markdown("""
-This dashboard visualizes breach proportions across mission types and cyber risk levels using:
-- A categorical heatmap with color-coded red/blue breach proportions
-- Jittered scatter points with high-contrast outlines
-- Cell-level red/blue ratio counts
-- A Pareto chart sorted by breach percentage
-- Rule-based insight summaries derived from grouped data
-
-Missing contextual variables may limit interpretation. Future versions may include GPT or statistical flags.
-""")
-
-st.title("Air Force Breach Analysis Dashboard")
-
-# Load data safely
+# Load data
 csv_path = "airforce_data_clean.csv"
 if not os.path.exists(csv_path):
-    st.error("🚨 Dataset not found! Please upload or ensure 'airforce_data_clean.csv' is in the same folder.")
+    st.error("CSV file not found.")
     st.stop()
 
 df = pd.read_csv(csv_path)
@@ -66,11 +48,12 @@ with np.errstate(divide='ignore', invalid='ignore'):
     proportion[heat_total == 0] = np.nan
 masked_proportion = ma.masked_invalid(proportion)
 
-x_jitter = st.slider("Horizontal Jitter", 0, 30, 10) / 100
-y_jitter = st.slider("Vertical Jitter", 0, 30, 10) / 100
+x_jitter = 0.1
+y_jitter = 0.1
 df['x_jittered'] = df['x'] + np.random.normal(0, x_jitter, size=len(df))
 df['y_jittered'] = df['y'] + np.random.normal(0, y_jitter, size=len(df))
 
+# Draw Heatmap
 fig, ax = plt.subplots(figsize=(10, 6))
 extent = [x_bins[0], x_bins[-1], y_bins[0], y_bins[-1]]
 cmap = LinearSegmentedColormap.from_list('custom_bwr', ['blue', 'white', 'red'], N=256)
@@ -97,70 +80,24 @@ ax.set_xticklabels(['Surveillance', 'Training', 'Combat', 'Logistics'])
 ax.set_yticks(range(5))
 ax.set_xlabel('Mission Type')
 ax.set_ylabel('Cyber Risk Level')
-ax.set_title('Categorical Breach Proportion Heatmap')
+ax.set_title('Categorical Heatmap of Breach Proportions')
 ax.legend(title='Breach History', loc='upper left', bbox_to_anchor=(1.02, 1))
 st.pyplot(fig)
 
-# 📊 Group and summarize for Pareto
+# Pareto chart
 grouped = df.groupby(['Mission Type', 'Cyber Risk Level'])
 summary = grouped['Breach History'].agg(['mean', 'count']).reset_index()
 summary['Label'] = summary['Mission Type'] + ' @ ' + summary['Cyber Risk Level'].astype(str)
 summary['Breach %'] = (summary['mean'] * 100).round(1)
 summary = summary.sort_values(by='Breach %', ascending=False)
 
-# Pareto Chart
-st.subheader("📊 Breach Rate Pareto Chart by Mission × Risk Level")
+st.subheader("📊 Breach Rate Pareto Chart")
 fig2, ax2 = plt.subplots(figsize=(10, 6))
 bars = ax2.barh(summary['Label'], summary['Breach %'], color='tomato', edgecolor='black')
-ax2.set_xlabel('Breach Percentage (%)')
-ax2.set_title('Pareto Chart: Breach Rate by Mission × Risk Level')
 for bar, count in zip(bars, summary['count']):
     width = bar.get_width()
     ax2.text(width + 1, bar.get_y() + bar.get_height()/2, f"{count} pts", va='center', fontsize=8)
+ax2.set_xlabel('Breach Percentage (%)')
+ax2.set_title('Pareto Chart: Breach Rate by Mission × Risk Level')
 ax2.invert_yaxis()
 st.pyplot(fig2)
-
-# Rule-Based Insights
-st.markdown("### 🧠 Rule-Based Insights")
-high_risk = summary.loc[summary['mean'] > 0.5]
-low_risk = summary.loc[summary['mean'] <= 0.5]
-if not high_risk.empty:
-    st.markdown("#### 🔴 High-Risk Areas")
-    for _, row in high_risk.iterrows():
-        st.write(f"• `{row['Label']}` shows a high breach rate of **{row['Breach %']}%**.")
-if not low_risk.empty:
-    st.markdown("#### 🔵 Lower-Risk Areas")
-    for _, row in low_risk.iterrows():
-        st.write(f"• `{row['Label']}` has a relatively low breach rate of **{row['Breach %']}%**.")
-
-
-
-# 🔬 Fisher's Exact Test Flags (Statistical Significance)
-st.markdown("### 🔬 Statistical Test Flags")
-alpha = 0.05
-significant_cells = []
-significant_labels = []
-
-for i, x in enumerate(x_centers):
-    for j, y in enumerate(y_centers):
-        red = int(heat_red[i, j])
-        blue = int(heat_blue[i, j])
-        other_red = heat_red.sum() - red
-        other_blue = heat_blue.sum() - blue
-
-        if (red + blue > 0) and (other_red + other_blue > 0):
-            table = [[red, blue], [other_red, other_blue]]
-            _, p = stats.fisher_exact(table)
-            if p < alpha:
-                significant_cells.append((i, j))
-                label = coord_to_label.get((i, j), f"@ ({i},{j})")
-                significant_labels.append(label)
-                ax.text(x, y, "🔺", ha='center', va='center', fontsize=14, color='black')
-
-if significant_labels:
-    st.success(f"{len(significant_labels)} quadrant(s) show statistically significant differences (p < 0.05).")
-    st.markdown("#### 🔺 Significant Quadrants")
-    for label in significant_labels:
-        st.markdown(f"- 🔺 `{label}`")
-else:
-    st.info("No quadrant shows a statistically significant breach difference (p < 0.05).")
