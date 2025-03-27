@@ -6,7 +6,7 @@ import numpy as np
 import numpy.ma as ma
 
 # Load and clean dataset
-df = pd.read_csv("airforce_data_clean.csv")
+df = pd.read_csv("airforce_dashboard/airforce_data_clean.csv")
 df.columns = df.columns.str.strip()
 
 # Map mission types
