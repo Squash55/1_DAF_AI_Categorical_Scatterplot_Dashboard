@@ -12,10 +12,8 @@ from dotenv import load_dotenv
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-
 uploaded_file = st.file_uploader("Upload a new dataset (CSV)", type=["csv"])
-
-if uploaded_file is not None:
+if uploaded_file:
     df = pd.read_csv(uploaded_file)
     file_title = uploaded_file.name.replace("_", " ").replace(".csv", "").title()
     title_text = f"📊 {file_title} Dashboard"
@@ -25,22 +23,13 @@ else:
 
 st.title(title_text)
 
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-    file_title = uploaded_file.name.replace("_", " ").replace(".csv", "").title()
-    st.title(f"📊 {file_title} Dashboard")
-else:
-    df = pd.read_csv("airforce_data.csv")
-    st.title("🛡️ Air Force Breach Proportion Dashboard")
-
 st.markdown("""
 ### 📘 Methods & Limitations
 
 This dashboard uses a combination of **data-driven calculations**, **rule-based logic**, and optional **GPT-based insights** to interpret breach risks across mission types and cyber risk levels.
 
-- Grid cells are color-coded **only when data is available**, and colored based on the **proportion of red (breach) vs blue (no breach)**.
-- Cells with **50/50 proportions or low data density** appear white to avoid over-interpretation.
-- **Empty cells** (no observations) are also white by design, but may visually resemble 50/50 cells.
+- Grid cells are color-coded based on the **proportion of red (breach) vs blue (no breach)**.
+- **50/50 proportion cells and empty cells** are shown as pure white for clarity.
 - Rule-based insights are derived from live data aggregations.
 - GPT-based summaries are tagged and generated using OpenAI, with optional refresh.
 
@@ -70,7 +59,7 @@ heat_total = heat_red + heat_blue
 
 with np.errstate(divide='ignore', invalid='ignore'):
     proportion = np.true_divide(heat_red, heat_total)
-    proportion[heat_total == 0] = np.nan
+    proportion[(heat_total == 0) | (np.isclose(proportion, 0.5))] = np.nan  # mask empty and 50/50
 
 masked_proportion = ma.masked_invalid(proportion)
 
@@ -117,9 +106,5 @@ for bar, count in zip(bars, summary['count']):
     width = bar.get_width()
     ax2.text(width + 1, bar.get_y() + bar.get_height()/2, f"{count} pts", va='center', fontsize=8)
 
-plt.gca().invert_yaxis()
+ax2.invert_yaxis()
 st.pyplot(fig2)
-
-
-from pareto_module import show_pareto_chart
-show_pareto_chart(df)
